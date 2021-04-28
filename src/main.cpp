@@ -1,13 +1,15 @@
-#include "wifi.h"
+#include "Mqtt.h"
 
-void setup() {
-  wifisetup();
-  
+void setup()
+{
+  mqttSetup();
 }
 
-void loop() {
-  // check the network connection once every 10 seconds:
+
+
+void loop()
+{
+
   delay(10000);
-  printCurrentNet();
-  
+  //publishMessage("23.4", 60);
 }
