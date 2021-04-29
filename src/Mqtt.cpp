@@ -52,6 +52,7 @@ void mqttSetup(){
     delay(100); // wait until connected
   } while (status != WL_CONNECTED);
   Serial.println("Connected to wifi");
+
   
   #ifdef DEBUG
     printWiFiStatus();
