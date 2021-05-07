@@ -18,89 +18,86 @@ Adafruit_MQTT_Publish humidity = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/fee
 Adafruit_MQTT_Publish motionTime = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/motionTime");
 Adafruit_MQTT_Publish lastwill = Adafruit_MQTT_Publish(&mqtt, AIO_USERNAME "/feeds/status", MQTT_QOS_1);
 
+Adafruit_MQTT_Subscribe motion = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/feeds/motion");
+
 /****************************** Funcs ***************************************/
 
-void mqttSetup(){
-    //Initialize serial and wait for port to open:
-  Serial.begin(115200);
-  while (!Serial)
-  {
-    ; // wait for serial port to connect.
-  }
+//Is set when Adafruit IO motion set on or off
+bool motionOn = false;
 
+void mqttSetup(){
   // check for the wifi module
   while (WiFi.status() == WL_NO_MODULE)
   {
-    Serial.println("Communication with WiFi module failed!");
     delay(1000);
   }
 
-  #ifdef DEBUG
-    String fv = WiFi.firmwareVersion();
-    if (fv < "1.0.0")
-    {
-      Serial.println("Please upgrade the firmware");
-    }
-  #endif
-
   // attempt to connect to Wifi network:
-  Serial.print("Attempting to connect to SSID: ");
-  Serial.println(WLAN_SSID);
   do
   {
     status = WiFi.begin(WLAN_SSID, WLAN_PASS);
     delay(100); // wait until connected
   } while (status != WL_CONNECTED);
-  Serial.println("Connected to wifi");
 
-  
-  #ifdef DEBUG
-    printWiFiStatus();
-  #endif
+  //subscribe to motion Adafruit IO
+  mqtt.subscribe(&motion);
 }
 
+/*
+ * Checks for incoming messages from Adafruit IO
+ */
+void messageQuery(){
+  Adafruit_MQTT_Subscribe *subscription;
+  
+  while ((subscription = mqtt.readSubscription(5000))) {
+    // Check if its the motion feed
+    if (subscription == &motion) {
+      if (strcmp((char *)motion.lastread, "ON") == 0) {
+        motionOn = true;
+        publishMessageMotion("Adafruit says: Motion Detection ON");
+      }
+      if (strcmp((char *)motion.lastread, "OFF") == 0) {
+         motionOn = false;
+         publishMessageMotion("Adafruit says: Motion Detection OFF");
+      }
+    } 
+  }
+    // ping the server to keep the mqtt connection alive
+  if(! mqtt.ping()) {
+    mqtt.disconnect();
+  }
+
+}
+
+/*
+ * For publishing Temperature and Humidity from DHT11 Sensor
+ */
 void publishMessage(char* t, uint32_t h){
-  // Ensure the connection to the MQTT server is alive (this will make the first
-  // connection and automatically reconnect when disconnected).  See the MQTT_connect
-  // function definition further below.
+  // Ensure the connection to the MQTT server is alive
   MQTT_connect();
   
   temperature.publish(t);
+  // wait a couple seconds to avoid rate limit
   delay(2000);
   humidity.publish(h);
-
-
-  // wait a couple seconds to avoid rate limit
-  delay(2000);
 }
 
-void publishMessageMotion(){
-  // Ensure the connection to the MQTT server is alive (this will make the first
-  // connection and automatically reconnect when disconnected).  See the MQTT_connect
-  // function definition further below.
+/*
+ * For publishing Motion Sensor
+ */
+void publishMessageMotion(char* m){
+  // Ensure the connection to the MQTT server is alive
   MQTT_connect();
 
-  #ifdef DEBUG
-    if (!motionTime.publish(""))
-    {
-      Serial.println(F("Motion sending failed"));
-    }
-    else
-    {
-      Serial.println(F("Motion sent"));
-    }
-  #endif
-  
-  #ifndef DEBUG
-    motionTime.publish("");
-  #endif
+  motionTime.publish(m);
 
   // wait a couple seconds to avoid rate limit
   delay(2000);
 }
 
-
-// Function to connect and reconnect as necessary to the MQTT server.
+/*
+ * Function to connect and reconnect as necessary to the MQTT server.
+ */
 void MQTT_connect()
 {
   int8_t ret;
@@ -114,13 +111,10 @@ void MQTT_connect()
   //Last Will Message Set
   mqtt.will(AIO_USERNAME "/feeds/status" , "offline", MQTT_QOS_1, 1);
 
-  Serial.print("Connecting to MQTT... ");
-  
+
   uint8_t retries = 3;
   while ((ret = mqtt.connect()) != 0)
   { // connect will return 0 for connected
-    Serial.println(mqtt.connectErrorString(ret));
-    Serial.println("Retrying MQTT connection in 5 seconds...");
     mqtt.disconnect();
     delay(5000); // wait 5 seconds
     retries--;
@@ -131,27 +125,5 @@ void MQTT_connect()
         ;
     }
   }
-
-  Serial.println("MQTT Connected!");
   lastwill.publish("online");
 }
-
-#ifdef DEBUG
-void printWiFiStatus()
-{
-  // print the SSID of the network you're attached to:
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
-
-  // print your board's IP address:
-  IPAddress ip = WiFi.localIP();
-  Serial.print("IP Address: ");
-  Serial.println(ip);
-
-  // print the received signal strength:
-  long rssi = WiFi.RSSI();
-  Serial.print("signal strength (RSSI):");
-  Serial.print(rssi);
-  Serial.println(" dBm");
-}
-#endif
