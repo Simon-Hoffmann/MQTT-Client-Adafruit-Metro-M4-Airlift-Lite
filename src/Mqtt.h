@@ -4,7 +4,7 @@
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
 
-#define MQTT_CONN_KEEPALIVE 60
+#define MQTT_CONN_KEEPALIVE 300
 
 /************************* Adafruit.io Setup *********************************/
 
@@ -15,10 +15,12 @@
 
 /****************************** Funcs ***************************************/
 
-extern bool motionOn;
+extern bool motionSend;
+extern int inputPin;
 
 void mqttSetup();
 void messageQuery();
+void motion_ISR();
 void subscribeMessage();
 void publishMessage(char* t, uint32_t h);
 void publishMessageMotion(char* m);

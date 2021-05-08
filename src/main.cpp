@@ -16,10 +16,9 @@
  *    -This MQTT Client is subscribed to the motion feed and constantly Queries for incoming messages
  *    
  *    -When a message has been received and it is from the Motion feed this activates the reading of the motion sensor which then publishes if a motion is detected
+ *    
+ *    -When motion is activated, an interrupt is set for the motion sensor pin, since the program spends a lot of time in the messageQuery func
  */
-
- //To add:
- // Interrupt for Motion sensor, takes to long for it to read sensor, since message query needs most time (just change variable in interrupt) Activate and deactivate interupt according to received motion status
 
 #include "Mqtt.h"
 #include "DHT.h"
@@ -29,13 +28,6 @@
 #define DHTTYPE DHT11
 
 DHT dht(DHTPIN, DHTTYPE);
-
-/***************************** Motion Detector Sensor Setup************************************/
-
-int inputPin = 3;               // PIR sensor pin
-int pirState = LOW;             
-int val = 0;                    // variable for reading the pin status
-
 /**********************************************************************************************/
 
 bool tempHumiditySent = false;
@@ -58,21 +50,10 @@ void loop()
   //Checks for incoming Messages from Adafruit IO
   messageQuery();
 
-  //Activates Motion sensor if activated from Adafruit IO 
-  if(motionOn){
-    val = digitalRead(inputPin);  // read input value
-    if (val == HIGH) {            // check if the input is HIGH
-      if (pirState == LOW) {
-        // publish to Adafruit IO when motion detected
-        publishMessageMotion("Adafruit says: Motion Detected!!");
-        //only output change, not state
-        pirState = HIGH;
-      }
-    } else {
-      if (pirState == HIGH){
-      pirState = LOW;
-      }
-    }
+  //Checks If Interrupts for motion Sensor changed variable to send data
+  if(motionSend){
+    publishMessageMotion("Adafruit says: Motion Detected!!");
+    motionSend = false;
   }
 
   //Check time, doesn't have to happen a lot since only hour is relevant

@@ -22,8 +22,11 @@ Adafruit_MQTT_Subscribe motion = Adafruit_MQTT_Subscribe(&mqtt, AIO_USERNAME "/f
 
 /****************************** Funcs ***************************************/
 
-//Is set when Adafruit IO motion set on or off
-bool motionOn = false;
+//Is set when Interrupt activated so motion will be sent
+bool motionSend = false;
+
+//Motion Sensor
+int inputPin = 3;               // PIR sensor pin         
 
 void mqttSetup(){
   // check for the wifi module
@@ -44,7 +47,7 @@ void mqttSetup(){
 }
 
 /*
- * Checks for incoming messages from Adafruit IO
+ * Checks for incoming messages from Adafruit IO and activates/deactivates Interrupt
  */
 void messageQuery(){
   Adafruit_MQTT_Subscribe *subscription;
@@ -53,11 +56,13 @@ void messageQuery(){
     // Check if its the motion feed
     if (subscription == &motion) {
       if (strcmp((char *)motion.lastread, "ON") == 0) {
-        motionOn = true;
+        //Interrupt activated when motion turned on from Adafruit IO, this Interrupts when signal received from motion sensor, only when rising signal detected
+        attachInterrupt(digitalPinToInterrupt(inputPin), motion_ISR, RISING);
         publishMessageMotion("Adafruit says: Motion Detection ON");
       }
       if (strcmp((char *)motion.lastread, "OFF") == 0) {
-         motionOn = false;
+         //remove Interrupt
+         detachInterrupt(digitalPinToInterrupt(inputPin));
          publishMessageMotion("Adafruit says: Motion Detection OFF");
       }
     } 
@@ -67,6 +72,13 @@ void messageQuery(){
     mqtt.disconnect();
   }
 
+}
+
+/*
+ * Interrupt Service Routine for motion sensor, this changes a variable so motion message is sent later, doesnt have to be instantly
+ */
+void motion_ISR(){
+  motionSend = true;
 }
 
 /*
