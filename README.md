@@ -6,7 +6,7 @@
 
 A MQTT Client which:
   - Publishes and subscribes to feeds
-  - Has a temperature, humidtity and motion sensor
+  - Has a temperature, humidity and motion sensor
   - Can toggle a sensor remotely through subscribed feed (Motion sensor)
   
 ### Publishing
