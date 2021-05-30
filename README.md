@@ -21,3 +21,13 @@ A MQTT Client which:
 ## Setup
 
 ![Adafruit Metro M4 Express Airlift Lite](src/img/1620491395507.jpg?raw=true "Title")
+
+## Libraries Used
+
+- Adafruit_FONA_Library
+- Adafruit_IO_Arduino
+- Adafruit_MQTT_Library
+- Adafruit_SleepyDog_Library
+- Adafruit_Unified_Sensor
+- DHT_sensor_library
+- WiFiNINA-master
